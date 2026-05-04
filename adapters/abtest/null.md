@@ -51,7 +51,7 @@ Accept the `allocation_pct` argument for contract compatibility (validate it is 
 
 ```
 assert isinstance(allocation_pct, int) and 0 <= allocation_pct <= 100
-write_json("autoresearch-web/variants/<slug>/experiment.json", {
+write_json("autocro/variants/<slug>/experiment.json", {
     "experiment_id": "plan_only:<slug>",
     "adapter": "null",
     "allocation": allocation_pct / 100.0,

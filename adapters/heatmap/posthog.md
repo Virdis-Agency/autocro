@@ -169,4 +169,4 @@ Same as `adapters/analytics/posthog.md`:
 - **HTTP 5xx / timeout**: retry once with a narrower window, then return empty arrays / zero-filled object.
 - **HTTP 401 / 403**: stop with credentials invalid.
 - **HTTP 429**: back off 30s, retry once, return empty.
-- **`mode: fixture`**: bypass every live query and read from `autoresearch-web/fixtures/heatmap-sample.json`. The fixture is multiplexed by path — demultiplex exactly as `adapters/heatmap/fixture.md` does. This is MANDATORY for `skills/validate-adapter.md`.
+- **`mode: fixture`**: bypass every live query and read from `autocro/fixtures/heatmap-sample.json`. The fixture is multiplexed by path — demultiplex exactly as `adapters/heatmap/fixture.md` does. This is MANDATORY for `skills/validate-adapter.md`.

@@ -256,4 +256,4 @@ Return:
 - **HTTP 429 (quota exhausted)**: back off 5 minutes, retry once, return empty on second failure.
 - **HTTP 5xx / token exchange 5xx**: retry once with a narrower window (`3daysAgo`), return empty on second failure.
 - **Token expired mid-run**: re-call `ga4_mint_token` and retry the failed request once.
-- **`mode: fixture`**: bypass every live call, skip the JWT flow entirely (no need for real credentials), and read from `autoresearch-web/fixtures/analytics-sample.json`. For each capability, return the pre-shaped slice exactly as `adapters/analytics/fixture.md` does. This is MANDATORY for `skills/validate-adapter.md`, and it is the only path that makes this adapter testable without a real GCP service account.
+- **`mode: fixture`**: bypass every live call, skip the JWT flow entirely (no need for real credentials), and read from `autocro/fixtures/analytics-sample.json`. For each capability, return the pre-shaped slice exactly as `adapters/analytics/fixture.md` does. This is MANDATORY for `skills/validate-adapter.md`, and it is the only path that makes this adapter testable without a real GCP service account.

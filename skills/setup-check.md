@@ -10,18 +10,46 @@ Without this skill, the inner loop would start with a silently-wrong config or a
 
 ## Steps
 
+### 0. Confirm framework file integrity
+
+Before touching the user's config, confirm the framework's own load-bearing files are present. If any are missing, the run will start cleanly and crash mid-iteration when one of these is invoked. List that must exist:
+
+- `autocro/harness/judge-rubric.md` (used by `skills/pre-validate.md` for every variant)
+- `autocro/harness/check_results_row.py` (used by the inner loop before every TSV append)
+- `autocro/harness/check_path.py` (used by `skills/generate-variant.md` for deny-glob enforcement)
+- `autocro/harness/validate.py` (used by step 2 below)
+- `autocro/harness/yaml_to_json.py` (used by step 2 below)
+- `autocro/harness/schemas/{analytics,heatmap,abtest,config}.json` (all four schema files)
+
+If `config.mode: fixture` is set (re-checked after step 2), also require:
+
+- `autocro/fixtures/analytics-sample.json`
+- `autocro/fixtures/heatmap-sample.json`
+- `autocro/fixtures/experiment-sample.json`
+
+Any missing file → stop with:
+
+```
+SETUP CHECK FAILED: framework file missing
+missing: <path>
+fix: this file ships with the autocro framework. Restore it from a fresh
+     clone of the repo (git checkout HEAD -- <path>), or re-clone the
+     framework if you've made unrelated local changes you want to keep.
+setup stopped.
+```
+
 ### 1. Confirm `config.yaml` exists
 
 ```
-ls autoresearch-web/config.yaml
+ls autocro/config.yaml
 ```
 
 If missing, stop with:
 
 ```
 SETUP CHECK FAILED: config.yaml not found
-expected: autoresearch-web/config.yaml
-fix: cp autoresearch-web/config.example.yaml autoresearch-web/config.yaml
+expected: autocro/config.yaml
+fix: cp autocro/config.example.yaml autocro/config.yaml
      then edit it to set project.root, goal.event, goal.target_paths,
      and the adapter ids you want.
 setup stopped.
@@ -30,8 +58,8 @@ setup stopped.
 ### 2. Convert `config.yaml` to JSON and run schema validation
 
 ```bash
-python3 autoresearch-web/harness/yaml_to_json.py autoresearch-web/config.yaml \
-  | python3 autoresearch-web/harness/validate.py config --stdin
+python3 autocro/harness/yaml_to_json.py autocro/config.yaml \
+  | python3 autocro/harness/validate.py config --stdin
 ```
 
 This runs two layers of checks:
@@ -41,12 +69,29 @@ This runs two layers of checks:
 
 On any failure, exit code is 2 (user error) or 3 (load/parser error). Surface the stderr block verbatim to the human and stop. Exit code 4 (internal helper crash) is NOT the user's fault — log a warning in `run.log` and continue, but mark the config as "unvalidated" so later steps know to be cautious.
 
-### 3. Verify adapter files exist for every non-null, non-fixture id
+### 3. Verify mode / adapter consistency
+
+If `config.mode == "fixture"`, at least one of `config.adapters.{analytics, heatmap, abtest}.id` must be non-null. Every adapter (real or fixture) is contractually required to implement a `## fallbacks > mode: fixture` branch (see `adapters/README.md` and the "MANDATORY for `skills/validate-adapter.md`" line in every reference adapter), so a real adapter id like `"ga4"` is valid in fixture mode — it just routes through the adapter's fixture fallback. With no adapter loaded at all, the inner loop has nothing to call and will produce empty hypotheses silently. If every adapter id is `null`, stop with:
+
+```
+SETUP CHECK FAILED: fixture mode requires at least one adapter
+config.mode = "fixture"
+config.adapters.analytics.id = <value>
+config.adapters.heatmap.id   = <value>
+config.adapters.abtest.id    = <value>
+fix: set at least one of adapters.{analytics,heatmap,abtest}.id to a non-null
+     value. The simplest offline smoke test sets all three to "fixture"; a
+     real adapter id (e.g. "ga4") also works in fixture mode because every
+     adapter implements a mandatory fixture fallback. See README.md.
+setup stopped.
+```
+
+### 4. Verify adapter files exist for every non-null, non-fixture id
 
 For each `config.adapters.<kind>.id` that is neither `null` nor `"fixture"`:
 
 ```
-ls autoresearch-web/adapters/<kind>/<id>.md
+ls autocro/adapters/<kind>/<id>.md
 ```
 
 Missing file → stop with:
@@ -54,7 +99,7 @@ Missing file → stop with:
 ```
 SETUP CHECK FAILED: adapter file not found
 config.adapters.<kind>.id = "<id>"
-expected: autoresearch-web/adapters/<kind>/<id>.md
+expected: autocro/adapters/<kind>/<id>.md
 exists: no
 fix: either (a) set adapters.<kind>.id: null in config.yaml to run without that data source,
             (b) run skills/author-adapter.md to create it, or
@@ -62,9 +107,9 @@ fix: either (a) set adapters.<kind>.id: null in config.yaml to run without that 
 setup stopped.
 ```
 
-### 4. Parse each loaded adapter's `requires.env` list and verify the vars are set
+### 5. Parse each loaded adapter's `requires.env` list and verify the vars are set
 
-For each adapter file loaded in step 3, read its `requires` block (the YAML frontmatter inside `## requires`) and for every name in `env`, check `os.environ`:
+For each adapter file loaded in step 4, read its `requires` block (the YAML frontmatter inside `## requires`) and for every name in `env`, check `os.environ`:
 
 ```bash
 python3 -c 'import os, sys; print("SET" if os.environ.get(sys.argv[1]) else "MISSING")' VAR_NAME
@@ -74,7 +119,7 @@ Or, equivalently, the agent can check its own environment. A missing env var sto
 
 ```
 SETUP CHECK FAILED: required env var not set
-adapter: autoresearch-web/adapters/<kind>/<id>.md
+adapter: autocro/adapters/<kind>/<id>.md
 missing: <VAR_NAME>
 declared at: adapters/<kind>/<id>.md :: requires.env
 fix: export <VAR_NAME>=<value>
@@ -84,15 +129,15 @@ setup stopped.
 
 If `config.mode: fixture` is set, skip this check — fixture mode is supposed to run without real credentials. Note the skip in `run.log`.
 
-### 5. Run `skills/validate-adapter.md` against each loaded adapter
+### 6. Run `skills/validate-adapter.md` against each loaded adapter
 
 For each non-null adapter, invoke `skills/validate-adapter.md` with the adapter path and the current `config.mode`. That skill runs each declared capability once (against live APIs or fixture data, per mode) and pipes the response to `harness/validate.py` to confirm the returned shape matches the contract.
 
 Failure → stop setup with the full error block from validate.py's stderr. See `skills/validate-adapter.md` for the exact error format and what it tells the human about fixing the adapter's `## read` section.
 
-### 6. Validate `workflow` config (if present)
+### 7. Validate `workflow` config and opt-in pre-validation helpers
 
-If `config.workflow` is set, run these checks. The first three are hard failures; the rest are warnings.
+Run checks 7a–7f and 7h **only if** `config.workflow` is set. Run check 7g (opt-in helper existence) **whenever** `config.prevalidation.lighthouse.enabled` or `config.prevalidation.persona.enabled` is true — those flags live under `prevalidation`, not `workflow`, so a config that enables them without a `workflow:` block must still hit 7g. The first three workflow checks (a, b, c) and 7g are hard failures; the rest are warnings.
 
 **a) Auto-push threshold floor (hard).** If `workflow.auto_push_threshold < prevalidation.thresholds.push`, stop with:
 
@@ -176,7 +221,7 @@ schedule: enabled — will prompt for cron setup (every <interval_value> <interv
 
 Schema already enforces the valid value ranges; the echo is purely for human visibility.
 
-### 7. Confirm success
+### 8. Confirm success
 
 If all steps pass, write one line to `run.log`:
 
@@ -204,7 +249,7 @@ Then return control to `program.md` for the remaining setup steps.
 
 When `config.mode: fixture`:
 
-- Step 4 (env var check) is skipped — fixture adapters don't need credentials.
-- Step 5 (validate-adapter) runs each capability against the fixture file's pre-shaped data via the adapter's `## fallbacks` `mode: fixture` branch. This proves both the adapter AND the fixture agree on the normalized shape, which is the whole point of fixture-mode validation.
+- Step 5 (env var check) is skipped — fixture adapters don't need credentials.
+- Step 6 (validate-adapter) runs each capability against the fixture file's pre-shaped data via the adapter's `## fallbacks` `mode: fixture` branch. This proves both the adapter AND the fixture agree on the normalized shape, which is the whole point of fixture-mode validation.
 
 If fixture mode fails validation, the bug is almost always in the adapter's `## read` section, the fixture sample file, or the schema — in that order.

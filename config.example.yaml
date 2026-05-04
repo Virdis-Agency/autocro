@@ -1,4 +1,4 @@
-# autoresearch-web configuration
+# autocro configuration
 #
 # Copy this file to config.yaml and edit. config.yaml is gitignored so you can
 # put local settings in it safely. NEVER inline credentials; always use
@@ -12,7 +12,7 @@
 
 project:
   # Path to the parent project root, relative to this folder. If you dropped
-  # autoresearch-web/ at the root of your website project, ".." is correct.
+  # autocro/ at the root of your website project, ".." is correct.
   root: ".."
 
   # Stack hint. Leave null to auto-detect. If detection is wrong, set it
@@ -154,7 +154,7 @@ guardrails:
   max_diff_lines: 200
 
   # If true, the agent MAY apply a patch to a scratch worktree at
-  # ~/.cache/autoresearch-web/worktrees/<slug>/ for preview (e.g. Lighthouse).
+  # ~/.cache/autocro/worktrees/<slug>/ for preview (e.g. Lighthouse).
   # The user's working tree is NEVER touched regardless of this setting.
   # Default false keeps the inner loop pure-diff and zero-risk.
   auto_apply: false
@@ -252,9 +252,9 @@ mode: live
 # ---------------------------------------------------------------------------
 
 git:
-  # If true, the agent creates a branch autoresearch-web/<tag> in the PARENT
+  # If true, the agent creates a branch autocro/<tag> in the PARENT
   # project at the start of a run. If false, it only uses out-of-tree
-  # worktrees under ~/.cache/autoresearch-web/. Default false.
+  # worktrees under ~/.cache/autocro/. Default false.
   use_branch: false
 
 # ---------------------------------------------------------------------------
@@ -332,7 +332,7 @@ workflow:
     on_winner: "queue_followup"
 
   # Session-level scheduling. When enabled, setup-check prints a
-  # ready-to-paste cron line so the whole autoresearch session restarts
+  # ready-to-paste cron line so the whole autocro session restarts
   # every N interval_units. Distinct from test_window, which governs
   # per-experiment baking time. The human pastes the cron entry into
   # `crontab -e` once — the agent never writes system files.

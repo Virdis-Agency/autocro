@@ -2,7 +2,7 @@
 
 Given an adapter file path and the current `config.mode`, exercise each capability the adapter claims as `implemented` and verify the returned JSON matches the normalized contract in `harness/schemas/<kind>.json`. On any failure, surface a line-addressed, actionable error that names the adapter file, the capability, the exact wrong key, and how to fix the adapter's `## read` section.
 
-Invoked by `skills/setup-check.md` step 5 (setup-time gating) and by `skills/author-adapter.md` (post-authoring verification). Calls `harness/validate.py`.
+Invoked by `skills/setup-check.md` step 6 (setup-time gating) and by `skills/author-adapter.md` (post-authoring verification). Calls `harness/validate.py`.
 
 ## Why this exists
 
@@ -10,7 +10,7 @@ Today's adapter contract is enforced by prose in `adapters/README.md:138-210`. W
 
 ## Inputs
 
-- `adapter_path` — e.g. `autoresearch-web/adapters/analytics/ga4.md`
+- `adapter_path` — e.g. `autocro/adapters/analytics/ga4.md`
 - `config.mode` — `live` or `fixture`
 - Optionally: a list of capabilities to validate (defaults to all capabilities the adapter marks `implemented`)
 
@@ -43,7 +43,7 @@ Write the response to stdout as JSON.
 ### 3. Pipe the response through `harness/validate.py`
 
 ```bash
-python3 autoresearch-web/harness/validate.py <kind> <capability> --stdin < adapter_response.json
+python3 autocro/harness/validate.py <kind> <capability> --stdin < adapter_response.json
 ```
 
 Where `<kind>` is `analytics | heatmap | abtest` and `<capability>` is the capability name from step 1.

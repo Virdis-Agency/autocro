@@ -1,4 +1,4 @@
-# autoresearch-web is a markdown-playbook framework executed by Claude Code (or
+# autocro is a markdown-playbook framework executed by Claude Code (or
 # a compatible agent harness). There is no Python runtime in the traditional
 # sense — the `harness/*.py` helpers are stdlib-only tools invoked by markdown
 # skills for deterministic validation (JSON-schema contract checks, deny-glob
@@ -6,14 +6,14 @@
 # permitted here; the empty `dependencies` array is load-bearing.
 
 [project]
-name = "autoresearch-web"
+name = "autocro"
 version = "0.2.0"
 description = "Autonomous conversion rate optimization research as a drop-in folder for any website project."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
-[tool.autoresearch-web]
+[tool.autocro]
 runtime = "claude-code-markdown"
 helpers_dir = "harness"
 python_helpers = "stdlib-only"

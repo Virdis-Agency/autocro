@@ -10,7 +10,7 @@ Turn a selected hypothesis into a real, git-applyable patch against the parent p
 
 ## Output
 
-A new directory `autoresearch-web/variants/vNNNN-<kebab-slug>/` containing:
+A new directory `autocro/variants/vNNNN-<kebab-slug>/` containing:
 
 - `hypothesis.md` — the full hypothesis, including data citations and predicted lift.
 - `patch.diff` — the git-applyable diff against parent HEAD (unified format).
@@ -33,12 +33,12 @@ Do NOT write `pre-validation.json` or `experiment.json` from this skill — thos
 
    ```bash
    printf '%s\n' "${target_paths[@]}" \
-     | python3 autoresearch-web/harness/check_path.py \
-         --config-json /tmp/autoresearch-web-config.json \
+     | python3 autocro/harness/check_path.py \
+         --config-json /tmp/autocro-config.json \
          --variant-slug "${slug}"
    ```
 
-   `/tmp/autoresearch-web-config.json` is produced by `skills/setup-check.md` from `config.yaml` via `harness/yaml_to_json.py` and re-used throughout the run. If it doesn't exist, regenerate it from `config.yaml` before calling check_path.
+   `/tmp/autocro-config.json` is produced by `skills/setup-check.md` from `config.yaml` via `harness/yaml_to_json.py` and re-used throughout the run. If it doesn't exist, regenerate it from `config.yaml` before calling check_path.
 
    Exit codes:
    - **0** → all candidate paths are allowed; proceed.
@@ -130,6 +130,6 @@ If generation fails, still create the variant folder and `notes.md`, but omit `p
 
 ## Do not
 
-- Do not apply the patch to the parent's working tree. Patches live in `variants/` and are applied only by `pre-validate.md` in an out-of-tree worktree at `~/.cache/autoresearch-web/worktrees/<slug>/`, and only if `auto_apply: true` or Lighthouse is enabled.
-- Do not edit `autoresearch-web/program.md`, any file under `autoresearch-web/skills/`, any file under `autoresearch-web/adapters/`, or any file under `autoresearch-web/harness/`. Those are the human-iterated skill.
-- Do not edit `autoresearch-web/results.tsv` from this skill. Only the inner loop itself writes rows.
+- Do not apply the patch to the parent's working tree. Patches live in `variants/` and are applied only by `pre-validate.md` in an out-of-tree worktree at `~/.cache/autocro/worktrees/<slug>/`, and only if `auto_apply: true` or Lighthouse is enabled.
+- Do not edit `autocro/program.md`, any file under `autocro/skills/`, any file under `autocro/adapters/`, or any file under `autocro/harness/`. Those are the human-iterated skill.
+- Do not edit `autocro/results.tsv` from this skill. Only the inner loop itself writes rows.

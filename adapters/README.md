@@ -242,7 +242,7 @@ What to do when the adapter call fails. Must explicitly cover:
 
 The easiest path is `skills/author-adapter.md` — an interactive flow that walks you through copying `TEMPLATE.md`, filling in every section based on your answers and your tool's docs, running the `## health` check, and updating `config.yaml`. Prompt Claude:
 
-> Read `autoresearch-web/skills/author-adapter.md` and help me author an analytics adapter. I use `<your tool>`; docs are at `<url>`.
+> Read `autocro/skills/author-adapter.md` and help me author an analytics adapter. I use `<your tool>`; docs are at `<url>`.
 
 Or manually:
 

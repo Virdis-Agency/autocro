@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-autoresearch-web schema validator — stdlib only.
+autocro schema validator — stdlib only.
 
 Invoked by markdown skills (skills/setup-check.md, skills/validate-adapter.md)
 to check config.yaml and adapter capability responses against the JSON schemas
@@ -402,7 +402,7 @@ def cmd_config(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="autoresearch-web schema validator (stdlib only)",
+        description="autocro schema validator (stdlib only)",
     )
     parser.add_argument("kind", help="one of: analytics, heatmap, abtest, config")
     parser.add_argument("capability", nargs="?",

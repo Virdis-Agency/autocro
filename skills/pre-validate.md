@@ -150,12 +150,12 @@ Set `is_stochastic: false` — the rubric + seed combination is designed to be q
 
 If `config.prevalidation.lighthouse.enabled` is true:
 
-1. `skills/setup-check.md` step 6g is expected to have already confirmed that `harness/lighthouse.sh` and `harness/apply-patch.sh` exist; if this skill is invoked with lighthouse enabled and either helper is missing, stop with an error pointing back at setup-check. Also confirm Node is available.
-2. Create a scratch worktree at `~/.cache/autoresearch-web/worktrees/<slug>/`.
+1. `skills/setup-check.md` step 7g is expected to have already confirmed that `harness/lighthouse.sh` and `harness/apply-patch.sh` exist; if this skill is invoked with lighthouse enabled and either helper is missing, stop with an error pointing back at setup-check. Also confirm Node is available.
+2. Create a scratch worktree at `~/.cache/autocro/worktrees/<slug>/`.
 3. Apply `patch.diff` there via `harness/apply-patch.sh`.
 4. Serve or navigate to `config.project.baseline_url` in that worktree.
 5. Run `harness/lighthouse.sh <url>` and parse the JSON for the configured categories.
-6. Compute delta vs a cached baseline score (cache at `~/.cache/autoresearch-web/baseline-lighthouse.json`, refresh weekly).
+6. Compute delta vs a cached baseline score (cache at `~/.cache/autocro/baseline-lighthouse.json`, refresh weekly).
 7. Map each category delta to `[-1, +1]` (a 10-point Lighthouse delta ≈ 0.5 signal score).
 8. Average across categories for the signal score.
 9. Tear down the worktree.

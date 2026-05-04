@@ -200,4 +200,4 @@ Return:
 - **HTTP 401 / 403**: stop with `credentials invalid for POSTHOG_API_KEY`.
 - **HTTP 429 (rate limit)**: back off 30s, retry once, return empty on second failure.
 - **Query timeout (HTTP 504)**: narrow the window (e.g. `interval 1 day`) and retry once. If it times out again, mark the capability degraded for this iteration and return empty.
-- **`mode: fixture`**: bypass all live queries and read from `autoresearch-web/fixtures/analytics-sample.json`. For each capability, return the pre-shaped slice exactly as `adapters/analytics/fixture.md` does. This is MANDATORY so `skills/validate-adapter.md` can run without PostHog credentials or burning query quota.
+- **`mode: fixture`**: bypass all live queries and read from `autocro/fixtures/analytics-sample.json`. For each capability, return the pre-shaped slice exactly as `adapters/analytics/fixture.md` does. This is MANDATORY so `skills/validate-adapter.md` can run without PostHog credentials or burning query quota.

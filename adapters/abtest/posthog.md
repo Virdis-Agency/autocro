@@ -103,7 +103,7 @@ NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 ROLLOUT=${allocation_pct}   # integer 0-100
 
 # Step 1: feature flag
-FLAG_KEY="autoresearch-${slug}"
+FLAG_KEY="autocro-${slug}"
 FLAG=$(curl -sS -X POST \
   -H "Authorization: Bearer $POSTHOG_API_KEY" \
   -H "Content-Type: application/json" \

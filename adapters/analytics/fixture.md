@@ -14,7 +14,7 @@ command: [cat]   # or any file-reading mechanism; agent can use Read tool direct
 
 ## health
 
-1. Confirm `autoresearch-web/fixtures/analytics-sample.json` exists and parses as JSON.
+1. Confirm `autocro/fixtures/analytics-sample.json` exists and parses as JSON.
 2. Confirm the fixture file has keys for at least `top_pages`, `landing_pages`, `funnel`, `traffic_sources`, `conversions`.
 
 ## capabilities
@@ -28,12 +28,12 @@ command: [cat]   # or any file-reading mechanism; agent can use Read tool direct
 
 ## read
 
-For every capability, read `autoresearch-web/fixtures/analytics-sample.json` and return the corresponding key. The fixture file is already pre-shaped to match the normalized contract — no transformation needed.
+For every capability, read `autocro/fixtures/analytics-sample.json` and return the corresponding key. The fixture file is already pre-shaped to match the normalized contract — no transformation needed.
 
 ### top_pages(window, limit)
 
 ```
-data = read_json("autoresearch-web/fixtures/analytics-sample.json")
+data = read_json("autocro/fixtures/analytics-sample.json")
 return data["top_pages"][:limit]
 ```
 
@@ -42,32 +42,32 @@ The `window` parameter is logged but ignored (fixtures are a single snapshot).
 ### landing_pages(window, limit)
 
 ```
-return read_json("autoresearch-web/fixtures/analytics-sample.json")["landing_pages"][:limit]
+return read_json("autocro/fixtures/analytics-sample.json")["landing_pages"][:limit]
 ```
 
 ### funnel(steps)
 
 ```
-return read_json("autoresearch-web/fixtures/analytics-sample.json")["funnel"]
+return read_json("autocro/fixtures/analytics-sample.json")["funnel"]
 ```
 
 ### traffic_sources(window, limit)
 
 ```
-return read_json("autoresearch-web/fixtures/analytics-sample.json")["traffic_sources"][:limit]
+return read_json("autocro/fixtures/analytics-sample.json")["traffic_sources"][:limit]
 ```
 
 ### conversions(event, window)
 
 ```
-data = read_json("autoresearch-web/fixtures/analytics-sample.json")
+data = read_json("autocro/fixtures/analytics-sample.json")
 return data["conversions"]
 ```
 
 ### session_quality(path, window)
 
 ```
-data = read_json("autoresearch-web/fixtures/analytics-sample.json")
+data = read_json("autocro/fixtures/analytics-sample.json")
 for entry in data.get("session_quality", []):
     if entry["path"] == path:
         return entry

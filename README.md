@@ -44,7 +44,7 @@ You do NOT need to `pip install` anything. The `pyproject.toml` in this repo dec
                               |
                               v
                    +---------------------+
-                   |  autoresearch-web/  |
+                   |  autocro/  |
                    |                     |
                    |  program.md  ◄──── you iterate on this
                    |  skills/           (author-adapter, hypothesize, ...)
@@ -70,10 +70,10 @@ The agent's inner loop, at a glance:
 ### Option A — try it offline first (no accounts needed)
 
 ```bash
-# From the root of your website project (or clone this repo to a fresh dir):
-cp autoresearch-web/config.example.yaml autoresearch-web/config.yaml
+# From the root of your website project, with this framework at ./autocro:
+cp autocro/config.example.yaml autocro/config.yaml
 # edit config.yaml:
-#   project.root: "."
+#   project.root: ".."   # parent project root, relative to autocro/
 #   project.baseline_url: "http://localhost:3000"   # whatever you serve
 #   mode: fixture
 #   adapters.analytics.id: fixture
@@ -81,31 +81,39 @@ cp autoresearch-web/config.example.yaml autoresearch-web/config.yaml
 #   adapters.abtest.id:    fixture
 ```
 
+If you cloned this repo by itself (no parent project yet), run the commands
+from the directory **above** the clone — that way `autocro/` sits as a
+subfolder, matching the drop-in layout above. To smoke-test against the
+bundled demo site without wiring up a real parent project, set
+`project.root: "fixtures/demo-target"` (relative to `autocro/`) in
+`autocro/config.yaml`. Do NOT open Claude Code from inside the clone root;
+every skill hardcodes `autocro/...` paths and they will not resolve.
+
 Then open Claude Code in your project root and prompt:
 
-> Read `autoresearch-web/program.md` and run **one** inner-loop iteration using fixture adapters.
+> Read `autocro/program.md` and run **one** inner-loop iteration using fixture adapters.
 
-Inspect `autoresearch-web/results.tsv`, `autoresearch-web/variants/v0001-*/`, and the `patch.diff` inside. The patch should apply cleanly to `fixtures/demo-target/` via `git apply --check`.
+Inspect `autocro/results.tsv`, `autocro/variants/v0001-*/`, and the `patch.diff` inside. The patch should apply cleanly to the configured `project.root` via `git apply --check`.
 
 ### Option B — wire up your real tools
 
 ```bash
-cp autoresearch-web/config.example.yaml autoresearch-web/config.yaml
+cp autocro/config.example.yaml autocro/config.yaml
 # edit config.yaml:
-#   project.root: "."
+#   project.root: ".."   # parent project root, relative to autocro/
 #   goal.event: "<your conversion event>"
 #   adapters.analytics.id: null   # we'll set this in a moment
 ```
 
 Then in Claude Code, prompt:
 
-> Read `autoresearch-web/program.md`. I don't have any adapters yet. Run `autoresearch-web/skills/author-adapter.md` to help me write one for my analytics tool, which is `<your tool>`. Here are the API docs: `<url or paste>`.
+> Read `autocro/program.md`. I don't have any adapters yet. Run `autocro/skills/author-adapter.md` to help me write one for my analytics tool, which is `<your tool>`. Here are the API docs: `<url or paste>`.
 
 The agent will copy `adapters/TEMPLATE.md` to `adapters/analytics/<your-tool-id>.md`, fill it in based on your answers, run the `## health` check, and update your `config.yaml`. Repeat for heatmap and abtest adapters as needed. Start with `adapters.abtest.id: null` (plan-only) for safety — the inner loop works perfectly without pushing real experiments.
 
 Once adapters are authored and healthy, prompt:
 
-> Read `autoresearch-web/program.md` and begin the inner loop. Run until `budget.max_variants_per_run` or `budget.max_wall_minutes` is hit.
+> Read `autocro/program.md` and begin the inner loop. Run until `budget.max_variants_per_run` or `budget.max_wall_minutes` is hit.
 
 Come back in the morning to `results.tsv` and `variants/RANKED.md`.
 
@@ -141,7 +149,7 @@ Scheduling (`workflow.schedule`) is for restarting the whole session on an inter
 ## Project structure
 
 ```
-autoresearch-web/
+autocro/
   README.md                    <- you are here
   program.md                   <- the master skill (the human iterates on this)
   config.example.yaml          <- per-project config template

@@ -2,7 +2,7 @@
 
 Interactively create a new adapter markdown playbook for whatever tool the parent project uses. You (the agent) walk the human through it, copy `adapters/TEMPLATE.md` to the new path, fill in every section, run the `## health` check, and update `config.yaml`.
 
-This is the skill users run first when they drop `autoresearch-web/` into a new project. No tool-specific knowledge is baked into the framework — every integration is authored per project via this skill.
+This is the skill users run first when they drop `autocro/` into a new project. No tool-specific knowledge is baked into the framework — every integration is authored per project via this skill.
 
 ## When to run
 
@@ -123,4 +123,4 @@ Once the file is written:
 
 ## When the human says "just use fixture mode for now"
 
-Skip all of the above. Set `mode: fixture` in `config.yaml` and all three `adapters.*.id: fixture`. Confirm the fixture files exist under `autoresearch-web/fixtures/`. The inner loop will run against canned data — useful for evaluating the framework before wiring up real tools.
+Skip all of the above. Set `mode: fixture` in `config.yaml` and all three `adapters.*.id: fixture`. Confirm the fixture files exist under `autocro/fixtures/`. The inner loop will run against canned data — useful for evaluating the framework before wiring up real tools.

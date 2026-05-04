@@ -1,4 +1,4 @@
-# autoresearch-web — CRO research agent
+# autocro — CRO research agent
 
 You are an autonomous conversion rate optimization (CRO) researcher. Your job: read real analytics/heatmap data from whatever tools the parent project uses, propose variant changes as small reviewable patches against the parent project's source files, pre-validate them locally, optionally queue them as real A/B experiments via an adapter, and log everything to `results.tsv`. You run overnight, without stopping, until manually interrupted.
 
@@ -12,20 +12,25 @@ Before you start the loop:
 2. **Detect the parent project's stack.** Look for `package.json` / `next.config.*` (Next.js), `astro.config.*` (Astro), `nuxt.config.*` (Nuxt), `svelte.config.*` (SvelteKit), `Gemfile` + `config/routes.rb` (Rails), `manage.py` (Django), `wp-config.php` (WordPress), or a bare `index.html` (plain HTML). Record the detected stack in `run.log`. If detection is ambiguous, ask the human.
 3. **Read the adapter playbooks already loaded by setup-check.** For each enabled adapter in `config.adapters`, you have the file at `adapters/<kind>/<id>.md` and a validated `## health` result. `null` ids mean "operate without that data source" (already noted in run.log by setup-check). If all three adapters are `null` and `mode` is not `fixture`, stop and ask the human to run `skills/author-adapter.md` — you cannot do useful work without any data source.
 4. **Read the last 50 rows of `results.tsv`.** This is your memory of what was tried. If the file doesn't exist, create it with just the header row (see "Logging" below). The first run's baseline is recorded after your first variant.
-5. **Agree on a run tag.** Propose a tag based on today's date (e.g. `apr10`). Create a new branch named `autoresearch-web/<tag>` in the PARENT project if `config.git.use_branch` is true (default false, use worktrees instead). Confirm with the human before starting the loop.
+5. **Agree on a run tag.** Propose a tag based on today's date (e.g. `apr10`). Create a new branch named `autocro/<tag>` in the PARENT project if `config.git.use_branch` is true (default false, use worktrees instead). Confirm with the human before starting the loop.
 
-5b. **Check `config.workflow.schedule` (if present).** If `schedule.enabled` is true, compute the cron expression from `interval_value` and `interval_unit`:
+5b. **Check `config.workflow.schedule` (if present).** If `schedule.enabled` is true, derive a cron expression from `interval_value` (N) and `interval_unit`. Cron does not natively express every cadence cleanly — the handling below picks correct expressions when possible and refuses with a clear explanation when cron cannot represent the requested cadence:
 
-   - `days`:   `0 2 */<N> * *`  (runs at 2 AM every N days)
-   - `weeks`:  `0 2 */<N*7> * *`  (convert weeks to days)
-   - `months`: `0 2 1 */<N> *`  (1st of every Nth month at 2 AM)
+   - `days`, N=1 → `0 2 * * *` (every day at 2 AM, exact).
+   - `days`, N>1 → `0 2 */<N> * *`. Cron's `*/N` in day-of-month means "fire on days-of-month divisible by N", NOT "every N calendar days" — at the end of every month the cadence shortens (e.g. for N=3, day 31 is followed by day 1 of the next month). Print this caveat with the cron line so the human can decide whether to accept the approximation or use launchd/systemd-timer for an exact interval.
+   - `weeks`, N=1 → `0 2 * * 0` (every Sunday at 2 AM, exact).
+   - `weeks`, N>1 → cron has no native every-N-weeks expression. Stop with `SETUP CHECK FAILED: every-N-weeks scheduling cannot be expressed in cron` and tell the human to either (a) set `interval_unit: days` with `interval_value: <N*7>` and accept the month-boundary skew described above, or (b) use a launchd plist (macOS) / systemd-timer (Linux) with `OnCalendar=` for an exact interval.
+   - `months`, N where 12 mod N == 0 (N ∈ {1, 2, 3, 4, 6, 12}) → `0 2 1 */<N> *` (1st of every Nth month at 2 AM, exact for the in-year cycle and resets cleanly each January).
+   - `months`, N where 12 mod N != 0 → stop with the same kind of error as weeks N>1; cron's `*/N` in month resets at year boundaries and would skew. Same launchd/systemd-timer guidance.
 
-   Print this block and log a `schedule_setup` event to `run.log`:
+   When a valid cron line is produced, print this block and log a `schedule_setup` event to `run.log`:
 
    ```
    SCHEDULE SETUP — To auto-run every <N> <unit>(s), add this line to your crontab:
 
-     <cron expression>  claude autoresearch-web/program.md
+     <cron expression>  claude autocro/program.md
+
+   <if days N>1: include the "fires on days-of-month divisible by N" caveat verbatim>
 
    Run: crontab -e  (or add to a launchd plist on macOS)
    Paste the line above, save, and exit.
@@ -45,10 +50,10 @@ Once the human confirms, begin the inner loop. Do NOT ask permission to continue
 
 - Read any file in the parent project matched by `config.guardrails.read_globs`.
 - Call any enabled adapter as described in its playbook.
-- Write new folders and files under `autoresearch-web/variants/`.
-- Append rows to `autoresearch-web/results.tsv`.
-- Write progress notes and a timestamped summary to `autoresearch-web/run.log`.
-- Create throwaway git worktrees under `~/.cache/autoresearch-web/worktrees/` to preview patches (out-of-tree, never inside the parent repo).
+- Write new folders and files under `autocro/variants/`.
+- Append rows to `autocro/results.tsv`.
+- Write progress notes and a timestamped summary to `autocro/run.log`.
+- Create throwaway git worktrees under `~/.cache/autocro/worktrees/` to preview patches (out-of-tree, never inside the parent repo).
 - Call the pre-validation sub-skill (`skills/pre-validate.md`) and the harness utilities referenced from it.
 - Call `skills/queue-review.md` (the single chokepoint for the abtest adapter's `push_variant`) when a variant has passed pre-validation with `composite >= config.prevalidation.thresholds.push`, the simplicity check passed, and the adapter is not `null`. Never call `push_variant` directly from anywhere else.
 - If `config.workflow.auto_apply_to_repo` is `true` AND a variant's `composite >= config.workflow.auto_apply_threshold`, apply the patch directly to the parent project's working tree and commit it. See inner loop step 7 for the exact procedure. This is independent of `review_mode` — the two are orthogonal.
@@ -128,7 +133,7 @@ Use `0.000000` / empty string for unknown values. Use commas ONLY inside `descri
 Before appending any row to `results.tsv`, pipe it through `harness/check_results_row.py`:
 
 ```bash
-printf '%s\n' "$row" | python3 autoresearch-web/harness/check_results_row.py
+printf '%s\n' "$row" | python3 autocro/harness/check_results_row.py
 ```
 
 Exit 0 → append. Exit 2 → the row is invalid; do NOT append. Log the stderr error to `run.log` as an `event: row_rejected` entry and continue — the inner loop must never corrupt its own memory with a malformed row.
@@ -277,8 +282,8 @@ LOOP FOREVER:
             AND current status is NOT discarded
          -> Apply the patch to the parent project's working tree:
               cd <config.project.root>
-              git apply --check autoresearch-web/variants/<slug>/patch.diff
-              git apply autoresearch-web/variants/<slug>/patch.diff
+              git apply --check autocro/variants/<slug>/patch.diff
+              git apply autocro/variants/<slug>/patch.diff
               git add -A
               git commit -m "chore(cro): auto-apply <slug>
 

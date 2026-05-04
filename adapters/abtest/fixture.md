@@ -16,7 +16,7 @@ command: [cat]
 
 ## health
 
-1. Confirm `autoresearch-web/fixtures/experiment-sample.json` exists and parses.
+1. Confirm `autocro/fixtures/experiment-sample.json` exists and parses.
 2. Confirm it has at least one `completed` entry and one `running` entry so both outer-loop branches (promote, keep-measuring) are exercised. Statuses must be drawn from the adapter contract: `running | completed | stopped` (see `adapters/README.md:199` / `harness/schemas/abtest.json`).
 
 ## capabilities
@@ -32,7 +32,7 @@ command: [cat]
 ### get_experiment(experiment_id)
 
 ```
-data = read_json("autoresearch-web/fixtures/experiment-sample.json")
+data = read_json("autocro/fixtures/experiment-sample.json")
 for entry in data["experiments"]:
     if entry["experiment_id"] == experiment_id:
         return entry
@@ -47,7 +47,7 @@ return {"experiment_id": experiment_id, "status": "running",
 ### list_experiments()
 
 ```
-return read_json("autoresearch-web/fixtures/experiment-sample.json")["experiments"]
+return read_json("autocro/fixtures/experiment-sample.json")["experiments"]
 ```
 
 ## write
@@ -59,7 +59,7 @@ assert isinstance(allocation_pct, int) and 0 <= allocation_pct <= 100
 exp_id = f"fixture:{slug}"
 now_iso = <ISO-8601 current time>
 allocation = allocation_pct / 100.0
-write_json("autoresearch-web/variants/<slug>/experiment.json", {
+write_json("autocro/variants/<slug>/experiment.json", {
     "experiment_id": exp_id,
     "adapter": "fixture",
     "allocation": allocation,

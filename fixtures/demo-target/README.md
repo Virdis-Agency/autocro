@@ -1,6 +1,6 @@
 # fixtures/demo-target
 
-A deliberately weak marketing site for Acme Cloud. Used as the end-to-end smoke test target for autoresearch-web — drop the framework into this folder, run one inner-loop iteration in fixture mode, and verify that the agent produces a sensible ranked list of variants.
+A deliberately weak marketing site for Acme Cloud. Used as the end-to-end smoke test target for autocro — drop the framework into this folder, run one inner-loop iteration in fixture mode, and verify that the agent produces a sensible ranked list of variants.
 
 ## Deliberate CRO weaknesses
 
@@ -44,19 +44,23 @@ This site has every common conversion problem so the agent always has something 
 
 ## Using this target
 
-From a Claude Code session at this folder:
+This demo lives inside the framework. Open Claude Code at the **parent of `autocro/`** (mirroring the drop-in layout from the top-level README) — `autocro/` is the framework, and `autocro/fixtures/demo-target/` is the parent project being optimized. Every skill hardcodes `autocro/...` paths, so opening Claude Code anywhere deeper inside the tree will break the first call to setup-check.
+
+From that cwd:
 
 ```
-cp ../config.example.yaml ../config.yaml
-# edit: project.root: ".", mode: fixture,
-# adapters.{analytics,heatmap,abtest}.id: fixture
+cp autocro/config.example.yaml autocro/config.yaml
+# edit autocro/config.yaml:
+#   project.root: "fixtures/demo-target"   # relative to autocro/
+#   mode: fixture
+#   adapters.{analytics,heatmap,abtest}.id: fixture
 ```
 
 Then prompt the agent:
 
-> Read `../program.md` and run one inner-loop iteration.
+> Read `autocro/program.md` and run one inner-loop iteration.
 
-Inspect `../variants/v0001-*/hypothesis.md`, `../variants/v0001-*/patch.diff`, and `../results.tsv`. The patch should apply cleanly to this folder via `git apply --check`.
+Inspect `autocro/variants/v0001-*/hypothesis.md`, `autocro/variants/v0001-*/patch.diff`, and `autocro/results.tsv`. The patch should apply cleanly to `autocro/fixtures/demo-target/` via `git apply --check`.
 
 Expected first-iteration behavior: the agent picks up one of the obvious weaknesses (CTA text, form bloat, pricing tier count, or fluff copy), proposes a small patch, scores it with the judge rubric and heuristics, writes a row to `results.tsv`, and writes the variant folder.
 

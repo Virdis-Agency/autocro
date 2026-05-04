@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "config.json",
-  "description": "Schema for autoresearch-web/config.yaml. Mirrors the fields documented in config.example.yaml. The validator (harness/validate.py) loads this with `validate.py config --stdin` where stdin is config.yaml converted to JSON. Post-schema rules (weights sum ~1.0, adapter file existence, *_env var resolution, literal-secret heuristic) run inside validate.py after the schema passes — they cannot be expressed in draft-07 alone.",
+  "description": "Schema for autocro/config.yaml. Mirrors the fields documented in config.example.yaml. The validator (harness/validate.py) loads this with `validate.py config --stdin` where stdin is config.yaml converted to JSON. Post-schema rules (weights sum ~1.0, adapter file existence, *_env var resolution, literal-secret heuristic) run inside validate.py after the schema passes — they cannot be expressed in draft-07 alone.",
 
   "type": "object",
   "required": ["project", "goal", "adapters", "guardrails", "prevalidation", "outer_loop", "budget", "mode"],

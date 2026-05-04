@@ -93,8 +93,8 @@ The framework never applies patches to your working tree automatically. To apply
 
 ```bash
 cd <parent project root>
-git apply --check autoresearch-web/variants/v0042-pricing-cta-specificity/patch.diff
-git apply       autoresearch-web/variants/v0042-pricing-cta-specificity/patch.diff
+git apply --check autocro/variants/v0042-pricing-cta-specificity/patch.diff
+git apply       autocro/variants/v0042-pricing-cta-specificity/patch.diff
 ```
 
 Inspect the change, commit it yourself, and ship.

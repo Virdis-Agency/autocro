@@ -14,7 +14,7 @@ command: [cat]
 
 ## health
 
-1. Confirm `autoresearch-web/fixtures/heatmap-sample.json` exists and parses as JSON.
+1. Confirm `autocro/fixtures/heatmap-sample.json` exists and parses as JSON.
 2. Confirm it has keys for at least `page_attention`, `click_map`, `rage_clicks`.
 
 ## capabilities
@@ -29,7 +29,7 @@ command: [cat]
 ### page_attention(path)
 
 ```
-data = read_json("autoresearch-web/fixtures/heatmap-sample.json")
+data = read_json("autocro/fixtures/heatmap-sample.json")
 for entry in data["page_attention"]:
     if entry["path"] == path:
         return entry
@@ -39,21 +39,21 @@ return {"path": path, "scroll_depth_p50": 0.0, "scroll_depth_p90": 0.0, "hotspot
 ### click_map(path, limit)
 
 ```
-data = read_json("autoresearch-web/fixtures/heatmap-sample.json")
+data = read_json("autocro/fixtures/heatmap-sample.json")
 return data["click_map"].get(path, [])[:limit]
 ```
 
 ### rage_clicks(path, limit)
 
 ```
-data = read_json("autoresearch-web/fixtures/heatmap-sample.json")
+data = read_json("autocro/fixtures/heatmap-sample.json")
 return data["rage_clicks"].get(path, [])[:limit]
 ```
 
 ### session_sample(path, n)
 
 ```
-data = read_json("autoresearch-web/fixtures/heatmap-sample.json")
+data = read_json("autocro/fixtures/heatmap-sample.json")
 return data.get("session_sample", {}).get(path, [])[:n]
 ```
 
