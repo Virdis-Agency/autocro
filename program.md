@@ -258,16 +258,38 @@ LOOP FOREVER:
               to actually push the variant.
 
          "auto":
-           IF composite >= config.workflow.auto_push_threshold:
+           Compute fast_track_eligible:
+             fast_track_eligible =
+                  signals.heuristic.raw.blocker_removed != null
+               AND signals.heuristic.raw.blocker_removed >= 0.5
+               AND diff_lines <= 5
+               AND composite >= config.prevalidation.thresholds.push
+               AND simplicity_review_passed
+
+           Rationale: a tiny patch (<= 5 lines) that mechanically unbreaks a
+           structural blocker on a primary or secondary affordance is a
+           high-confidence, low-risk fix — the kind a human would approve in
+           seconds. The fast-track lets it skip the standard
+           auto_push_threshold (default 0.60) so the framework can
+           auto-apply the class of fixes it should be best at: structural
+           bug fixes grounded in unambiguous data (e.g., 47% rage-click
+           rate on a disabled submit button). Cosmetic copy variants never
+           qualify because their blocker_removed is null or 0.
+
+           IF composite >= config.workflow.auto_push_threshold OR fast_track_eligible:
              -> Call abtest.push_variant with
                   allocation_pct = config.workflow.auto_allocation_pct
                 (default 50). The test goes LIVE immediately — no 0%
                 staging, no human ramp. On success, write
                 variants/<slug>/experiment.json, set status=pushed with
                 the returned experiment_id, and log
-                event=variant_pushed_live. On failure, warn and fall
-                through to the "below auto_push_threshold" branch below.
-           ELSE (composite < auto_push_threshold):
+                event=variant_pushed_live. If fast_track_eligible AND
+                composite < auto_push_threshold, include
+                "fast_track=true; reason=blocker_removed+tiny_diff" in the
+                run.log notes so the human can audit which variants took
+                the side door. On failure, warn and fall through to the
+                queue branch below.
+           ELSE (composite < auto_push_threshold AND not fast_track_eligible):
              -> Invoke skills/queue-review.md in ## append mode (same as
                 manual). status=awaiting_review.
 
@@ -277,10 +299,21 @@ LOOP FOREVER:
 
      (d) Auto-apply to the parent working tree — orthogonal to the above:
          IF config.workflow.auto_apply_to_repo == true
-            AND composite >= config.workflow.auto_apply_threshold (default 0.70)
             AND simplicity review passed
             AND current status is NOT discarded
+            AND (composite >= config.workflow.auto_apply_threshold (default 0.70)
+                 OR fast_track_eligible)
          -> Apply the patch to the parent project's working tree:
+
+            (Note: fast_track_eligible is computed in branch (b) above when
+            review_mode is "auto"; if review_mode is "manual" or "off",
+            recompute it here using the same criteria. The fast-track lets a
+            tiny mechanical bug-fix patch — e.g., the broken submit button —
+            commit straight to the working tree without clearing the 0.70
+            bar. The criteria are deliberately narrow: blocker_removed
+            heuristic >= 0.5, diff_lines <= 5, composite >= push_threshold,
+            simplicity ok.)
+
               cd <config.project.root>
               git apply --check autocro/variants/<slug>/patch.diff
               git apply autocro/variants/<slug>/patch.diff
@@ -291,7 +324,11 @@ Composite: <composite>
 Hypothesis: <one-line summary from hypothesis.md>
 Run tag: <tag>"
             On success: append a status=auto_applied row. Log
-              event=variant_auto_applied.
+              event=variant_auto_applied. If fast_track_eligible AND
+              composite < auto_apply_threshold, include
+              "fast_track=true; reason=blocker_removed+tiny_diff" in the
+              run.log notes so the auto-apply audit trail makes the
+              side-door path explicit.
             On git apply failure: do NOT commit. Keep the existing status
               (pre_validated, pushed, or awaiting_review). Log notes:
               "auto-apply failed: <error>".

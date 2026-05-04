@@ -26,15 +26,16 @@ Return a single JSON object:
     "copy_antifluff":    {"score": 0, "reason": "..."},
     "visual_hierarchy":  {"score": 0, "reason": "..."},
     "mobile_first":      {"score": 0, "reason": "..."},
-    "accessibility":     {"score": 0, "reason": "..."}
+    "accessibility":     {"score": 0, "reason": "..."},
+    "blocker_removed":   {"score": 0, "reason": "..."}
   },
-  "composite": 0.4,
+  "composite": 0.385,
   "seed": 42,
   "notes": "..."
 }
 ```
 
-Each `items.*.score` is one of `-1`, `0`, `+1`. The `composite` is the mean of all items, mapped to `[-1, +1]`.
+Each `items.*.score` is one of `-1`, `0`, `+1`. The `composite` is the **weighted** mean of all items (see "Composite calculation" below), mapped to `[-1, +1]`. Most items carry weight 1; `friction_reduction` and `blocker_removed` carry weight 2 because they directly measure impact on the goal-completion path.
 
 ## The items
 
@@ -136,15 +137,43 @@ Does the change maintain or improve accessibility (alt text, semantic HTML, ARIA
 - `0`: no accessibility impact
 - `-1`: uses divs where semantic elements belong, removes alt text, introduces low-contrast pairings, or breaks keyboard navigation
 
+### 11. Blocker removed
+
+Does the patch remove a structural impediment that prevents users from completing the goal event? Examples: a `disabled` attribute on a submit button, a `pointer-events: none` style on the primary CTA, an `href="#"` placeholder on what should be a working link, an empty form `action`, a `tabindex="-1"` trapping keyboard users away from a needed control, a CSS class like `cta-disabled` that the LLM can recognize as an off-state.
+
+This item is distinct from `friction_reduction` (#4): friction is *"one more step than ideal"*; a blocker is *"no path to the goal at all."* A patch can score +1 on both independently — e.g., removing `disabled` AND removing two unnecessary form fields.
+
+- `+1`: removes a blocker on the **primary** CTA / submit / goal-event element
+- `0`: no blocker addressed (most patches)
+- `-1`: introduces a blocker on the primary CTA / submit / goal-event element
+
+This item carries **weight 2** in the composite (see below). It pairs with the deterministic `blocker_removed` sub-score in `skills/pre-validate.md` — the heuristic catches literal attribute/CSS patterns; this item catches semantic equivalents the heuristic can't pattern-match.
+
 ## Composite calculation
 
+Items are not equally weighted. Items that capture impact on the goal-completion path (`friction_reduction`, `blocker_removed`) carry double weight; the remaining 9 items carry weight 1.
+
 ```
-composite = sum(item.score for item in items) / count(items)
+weights = {
+    "cta_clarity":          1,
+    "cta_specificity":      1,
+    "value_prop_concrete":  1,
+    "friction_reduction":   2,
+    "social_proof_real":    1,
+    "copy_concreteness":    1,
+    "copy_antifluff":       1,
+    "visual_hierarchy":     1,
+    "mobile_first":         1,
+    "accessibility":        1,
+    "blocker_removed":      2,
+}
+total_weight = 13
+composite = sum(items[k].score * weights[k] for k in items) / total_weight
 ```
 
-With 10 items each scored `-1`, `0`, or `+1`, composite is in `[-1, +1]` with granularity `0.1`.
+With 11 items and a denominator of 13, composite is in `[-1, +1]`. Granularity is no longer a clean 0.1 — the smallest non-zero step is `1/13 ≈ 0.077`.
 
-**Clamp rule**: if `copy_antifluff` is `-1`, the overall composite is clamped to `min(composite, 0.0)` — a fluffy patch cannot score positive overall no matter how good the rest is.
+**Clamp rule**: if `copy_antifluff` is `-1`, the overall composite is clamped to `min(composite, 0.0)` — a fluffy patch cannot score positive overall no matter how good the rest is. The clamp runs AFTER the weighted average, so it stays effective regardless of how the friction or blocker items score.
 
 ## Seed usage
 

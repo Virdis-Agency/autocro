@@ -28,7 +28,8 @@ Write `variants/<slug>/pre-validation.json` in this shape:
         "social_proof_presence": 0.2,
         "contrast_ratio": 0.0,
         "form_friction": 0.4,
-        "mobile_viewport_meta": 0.0
+        "mobile_viewport_meta": 0.0,
+        "blocker_removed": null
       },
       "notes": "CTA verb changed from 'Learn more' to 'Start free trial' — +0.5"
     },
@@ -122,6 +123,31 @@ If no form changes, set to `null`.
 ### 6. Mobile viewport meta (`mobile_viewport_meta`)
 
 Does the patched HTML have `<meta name="viewport" content="width=device-width, initial-scale=1">` on target pages? +1 if it was missing and is now present; 0 if unchanged (present or irrelevant); −1 if removed.
+
+### 7. Blocker removed (`blocker_removed`)
+
+Detect attributes, inline styles, hrefs, or form actions in the diff that prevent users from completing the goal action. This is distinct from `form_friction` (#5) which counts fields — a blocker is "no path to the goal at all," not "one extra step."
+
+Trigger patterns (any one is enough; check both removals AND additions):
+
+- **HTML attributes** on interactive elements: `disabled`, `aria-disabled="true"`, `readonly` (on an input expected to take input), `tabindex="-1"` (on a focusable control)
+- **Inline / style-attribute CSS** on a primary CTA selector: `pointer-events: none`, `display: none`, `visibility: hidden`, `opacity: 0`
+- **Broken hrefs**: `href="#"`, `href="javascript:void(0)"`, `href="javascript:;"`, empty `href=""`
+- **Form submission**: form `action` attribute is empty (`action=""`) or missing entirely on a form whose submit is the goal event
+
+Identify which element is the **primary** affordance: the one tied to `config.goal.event`. On forms, that's the submit button or the form `action`. On link-driven funnels, that's the CTA matching `goal.target_paths`.
+
+Score:
+
+- **+1.0**: removes one of the above from the **primary** CTA / submit / goal-event element
+- **+0.5**: removes one from a **secondary** affordance (nav link, secondary CTA, non-goal form)
+- **+0.0**: no change to blockers
+- **−0.5**: introduces a soft blocker on a secondary element
+- **−1.0**: introduces a blocker on the primary CTA / submit / goal-event element
+
+If the diff doesn't touch any of the trigger patterns above, set to `null` and exclude from the heuristic mean — same convention as the other sub-scores.
+
+This sub-score is the deterministic counterpart to rubric item #11 in `harness/judge-rubric.md`. The two run independently and can disagree (e.g., the LLM may catch a blocker-equivalent class change like `class="cta-disabled"` that this pattern list misses, or vice versa). Both should agree on obvious cases (a literal `disabled` attribute on a submit button).
 
 ### Aggregation
 

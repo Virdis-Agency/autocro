@@ -49,7 +49,65 @@ Do NOT write `pre-validation.json` or `experiment.json` from this skill — thos
 
 3. **No new dependencies.** If the change would require installing a new package (npm, yarn, pip, gem, etc.), abort. Do not edit `package.json`, `requirements.txt`, `Gemfile`, or any lockfile to add dependencies. You may edit these files only to change existing config values (never to add lines).
 
-4. **Write the patch.** Produce a unified diff against parent HEAD in the format `git apply` expects:
+4. **Generate the patch via `diff -u` — never hand-author hunk headers.** The agent must NOT type `@@ -X,Y +X,Y @@` by hand. Hand-authored unified diffs reliably break `git apply` with `error: patch fragment without header` whenever adjacent hunks share context lines or the agent miscounts by one. The `diff` utility is the single source of truth for hunk math. Procedure, per target file:
+
+   ```bash
+   slug="<vNNNN-kebab>"
+   path="<path/relative/to/project.root>"
+   project_root="<config.project.root>"
+   scratch="/tmp/autocro-patchgen/${slug}"
+
+   mkdir -p "${scratch}/$(dirname "${path}")"
+   cp "${project_root}/${path}" "${scratch}/${path}.before"
+   cp "${project_root}/${path}" "${scratch}/${path}.after"
+   # Edit ${scratch}/${path}.after with the proposed change. Use the Edit tool
+   # against that scratch file — never against the file under project_root.
+   diff -u "${scratch}/${path}.before" "${scratch}/${path}.after" \
+     | sed -e "s|^--- ${scratch}/${path}.before.*|--- a/${path}|" \
+           -e "s|^+++ ${scratch}/${path}.after.*|+++ b/${path}|" \
+     > "${scratch}/${path}.diff"
+   ```
+
+   Then assemble the candidate `patch.diff` in scratch by prepending the `diff --git` header for each file and concatenating:
+
+   ```bash
+   {
+     for path in "${changed_paths[@]}"; do
+       printf 'diff --git a/%s b/%s\n' "${path}" "${path}"
+       cat "${scratch}/${path}.diff"
+     done
+   } > "${scratch}/patch.diff"
+   ```
+
+   The candidate lives in `${scratch}/patch.diff` until step 8 promotes it into the variant folder. Use real paths relative to the parent project root. The default `diff -u` context (3 lines) is correct.
+
+   Multi-file variants: repeat the cp + edit + diff per file, then concatenate. Do NOT try to merge hunks across files by hand.
+
+   Binary files: not supported. If a hypothesis requires a binary change (image swap, font change), abort the variant and record the reason in `notes.md`.
+
+5. **Verify the patch applies cleanly.** Run `git apply --check` against the scratch patch from inside the parent project root before promoting it:
+
+   ```bash
+   ( cd "${project_root}" && git apply --check "${scratch}/patch.diff" )
+   ```
+
+   On non-zero exit: write `notes.md` with the exact stderr from `git apply --check`, do NOT promote `${scratch}/patch.diff` to the variant folder, skip `pre-validate.md`, and let the inner loop record `status=crash`. Do NOT attempt to hand-fix hunk headers — re-run step 4 from a fresh scratch directory if the input edit was wrong, otherwise abandon the variant.
+
+6. **Count `diff_lines`.** Lines beginning with `+` but not `+++`, plus lines beginning with `-` but not `---`. If `diff_lines > config.guardrails.max_diff_lines`, stop and report the overrun in `notes.md`. Do not truncate the patch — report the overrun so the inner loop can record `status=discarded`.
+
+7. **Sanity self-check.** Before writing `patch.diff`, re-read your proposed diff and confirm:
+   - It does not touch any file matching `deny_globs`.
+   - It does not add any new dependency.
+   - There are no debug statements (`console.log`, `print`, `debugger`) left in.
+   - There are no commented-out blocks of old code. Delete cleanly or not at all.
+   - The diff is syntactically valid for the target language (balanced braces, closed tags, valid HTML).
+
+   Hunk-header line numbers are NOT a self-check item — `diff -u` produces them and step 5's `git apply --check` is the final arbiter.
+
+8. **Promote the scratch patch and write the variant folder.** Create `autocro/variants/${slug}/`, copy `${scratch}/patch.diff` into it, and write `hypothesis.md` and `notes.md`. Copy any raw adapter responses into `sources/` if they're available as local files. Leave the scratch directory in place — it is the audit trail for how the patch was produced and is cleaned up by the inner loop, not by this skill.
+
+   Reference: a produced `patch.diff` looks like this — do NOT use this as a hand-fill template; it is what step 4's `diff -u` output should resemble after the header rewrite:
+
    ```
    diff --git a/<path> b/<path>
    --- a/<path>
@@ -57,19 +115,6 @@ Do NOT write `pre-validation.json` or `experiment.json` from this skill — thos
    @@ -<old> +<new> @@
    ...
    ```
-   Use real paths relative to the parent project root. Use minimum context (3 lines) unless the surrounding code is ambiguous.
-
-5. **Count `diff_lines`.** Add lines beginning with `+` (not `+++`), add lines beginning with `-` (not `---`). If `diff_lines > config.guardrails.max_diff_lines`, stop and report the overrun in `notes.md`. Do not truncate the patch — report the overrun so the inner loop can record `status=discarded`.
-
-6. **Sanity self-check.** Before writing `patch.diff`, re-read your proposed diff and confirm:
-   - It does not touch any file matching `deny_globs`.
-   - It does not add any new dependency.
-   - Every `@@` hunk header matches real line numbers in the target file.
-   - There are no debug statements (`console.log`, `print`, `debugger`) left in.
-   - There are no commented-out blocks of old code. Delete cleanly or not at all.
-   - The diff is syntactically valid for the target language (balanced braces, closed tags, valid HTML).
-
-7. **Write the files.** Create the variant folder, write `patch.diff`, `hypothesis.md`, and `notes.md`. Copy any raw adapter responses into `sources/` if they're available as local files.
 
 ## hypothesis.md template
 
@@ -127,6 +172,7 @@ If generation fails, still create the variant folder and `notes.md`, but omit `p
 - **Patch would add dependency**: notes.md says "blocked: requires new dep <name>"; do not write patch.diff.
 - **Patch exceeds max_diff_lines**: STILL write patch.diff so the inner loop's simplicity-review.md can log the exact count; notes.md says "oversized: {n} lines".
 - **Target file not in read_globs allowlist**: notes.md says "blocked: <path> outside read_globs"; do not write patch.diff.
+- **`git apply --check` failed in step 5**: do NOT promote `${scratch}/patch.diff` to the variant folder. Create the variant folder with `notes.md` only (saying "patch apply failed: <stderr from git apply --check>") and leave `patch.diff` absent — the inner loop's missing-patch handler records `status=crash`. The scratch patch stays under `/tmp/autocro-patchgen/${slug}/` for the human to inspect. Do not hand-edit hunk headers; the diff was generated by `diff -u` and any failure here means the scratch edit was wrong (e.g. edited the `.before` file by mistake, or the source file changed under us).
 
 ## Do not
 
