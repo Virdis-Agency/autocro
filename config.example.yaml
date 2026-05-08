@@ -236,6 +236,19 @@ budget:
   # Wall-clock minutes the agent is allowed to run before printing a summary
   # and stopping gracefully. Default 8 hours.
   max_wall_minutes: 480
+  # Stop the inner loop after the first iteration that successfully pushes
+  # a variant live to the abtest adapter (status=pushed in results.tsv).
+  # Awaiting-review and auto-applied variants do NOT trigger this stop —
+  # only a real push_variant call does.
+  #
+  # Recommended `true` at low-to-medium traffic: running multiple competing
+  # experiments simultaneously dilutes each one's exposure population.
+  # Stopping on the first push hands back control so you can ramp/observe
+  # before generating more candidates competing for the same conversion.
+  #
+  # Default `false` keeps autocro's original "overnight unattended" mode,
+  # appropriate when you have enough traffic for parallel experiments.
+  stop_on_first_push: false
 
 # ---------------------------------------------------------------------------
 # Mode

@@ -349,8 +349,19 @@ Run tag: <tag>"
  10. Check budget:
        variants_proposed >= config.budget.max_variants_per_run
          OR wall_minutes >= config.budget.max_wall_minutes
+         OR (config.budget.stop_on_first_push == true
+             AND any variant in this session has status=pushed)
          -> print a summary to run.log and stop gracefully.
      Otherwise: continue.
+
+     The `stop_on_first_push` clause counts ONLY successful push_variant
+     responses (status=pushed in results.tsv with a non-empty experiment_id).
+     awaiting_review variants (queued for human approval) and auto_applied
+     variants (committed to the autocro branch but not pushed live) do NOT
+     trigger this stop — those are not yet generating live experiment
+     traffic. The intent is "once we've created one real PostHog experiment
+     this session, hand back to the human to ramp it before generating more
+     candidates that could compete for the same conversion population."
 ```
 
 ## NEVER STOP

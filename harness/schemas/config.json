@@ -183,7 +183,11 @@
       "additionalProperties": false,
       "properties": {
         "max_variants_per_run": { "type": "integer", "minimum": 1 },
-        "max_wall_minutes":     { "type": "integer", "minimum": 1 }
+        "max_wall_minutes":     { "type": "integer", "minimum": 1 },
+        "stop_on_first_push": {
+          "type": "boolean",
+          "description": "When true, the inner loop stops after the first iteration in this session that successfully pushes a variant to the abtest adapter (status=pushed). Awaiting-review and auto-applied variants do not trigger this stop — only a real push_variant call. Default false (run until max_variants_per_run / max_wall_minutes)."
+        }
       }
     },
 
