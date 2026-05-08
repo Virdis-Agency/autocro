@@ -224,6 +224,10 @@
           "minimum": -1,
           "maximum": 1
         },
+        "patch_shape": {
+          "type": "string",
+          "enum": ["direct", "wrapped"]
+        },
         "test_window": {
           "type": "object",
           "additionalProperties": false,

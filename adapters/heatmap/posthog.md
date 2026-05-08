@@ -35,6 +35,25 @@ Same as `adapters/analytics/posthog.md` health checks, plus:
 
 Uses the same `posthog_query` shell helper pattern from `adapters/analytics/posthog.md`.
 
+### Test-account exclusion (project-specific — keep in sync with analytics adapter)
+
+Same convention as `adapters/analytics/posthog.md::Test-account exclusion`. Every HogQL query below includes the project's test-account `WHERE` clauses inline. When this adapter keys on `properties.$current_url` (e.g. `click_map`, `rage_clicks`, `page_attention` hotspots) instead of `properties.$pathname`, the Studio exclusion becomes a `$current_url` substring match because Studio paths appear in both. Edit these clauses if the project filters change.
+
+```sql
+-- Sanity Studio (CMS noise) — version for $pathname-keyed queries
+AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+
+-- Sanity Studio — version for $current_url-keyed queries
+AND coalesce(properties.$current_url, '') NOT ILIKE '%/structure%'
+AND coalesce(properties.$current_url, '') NOT ILIKE '%/studio%'
+
+-- Always-applied: localhost + identified team emails
+AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
+```
+
 ### page_attention(path)
 
 Query:
@@ -47,6 +66,9 @@ FROM events
 WHERE event = '$pageview'
   AND properties.$pathname = '${path}'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 ```
 
 Then a second query for the top 5 clicked elements on this path (becomes `hotspots`):
@@ -59,6 +81,11 @@ FROM events
 WHERE event = '$autocapture'
   AND properties.$current_url LIKE '%${path}%'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/structure%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY selector
 ORDER BY intensity DESC
 LIMIT 5
@@ -91,6 +118,11 @@ FROM events
 WHERE event IN ('$autocapture', '$rageclick')
   AND properties.$current_url LIKE '%${path}%'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/structure%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY selector
 ORDER BY clicks DESC
 LIMIT 25
@@ -114,6 +146,11 @@ FROM events
 WHERE event = '$rageclick'
   AND properties.$current_url LIKE '%${path}%'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/structure%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY selector
 ORDER BY count DESC
 LIMIT 25
@@ -137,6 +174,9 @@ SELECT
 FROM events
 WHERE properties.$pathname = '${path}'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY session_id
 ORDER BY events DESC
 LIMIT ${n}

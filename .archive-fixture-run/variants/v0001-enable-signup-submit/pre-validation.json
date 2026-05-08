@@ -1,0 +1,47 @@
+{
+  "slug": "v0001-enable-signup-submit",
+  "timestamp": "2026-05-08T02:20:05Z",
+  "diff_lines": 2,
+  "signals": {
+    "heuristic": {
+      "enabled": true,
+      "score": 0.333,
+      "raw": {
+        "cta_verb_quality": null,
+        "readability_grade": null,
+        "social_proof_presence": 0.0,
+        "contrast_ratio": null,
+        "form_friction": null,
+        "mobile_viewport_meta": 0.0,
+        "blocker_removed": 1.0
+      },
+      "notes": "blocker_removed=+1: literal `disabled` attribute removed from <button type='submit'> bound to goal event sign_up (form action='/signup'). All other sub-scores null or 0 per spec \u2014 patch touches no copy/colors/fields/viewport."
+    },
+    "llm_judge": {
+      "enabled": true,
+      "panel_size": 5,
+      "seed": 42,
+      "raw_panel": [
+        0.231,
+        0.231,
+        0.308,
+        0.231,
+        0.231
+      ],
+      "score": 0.246,
+      "is_stochastic": false,
+      "notes": "Per-pass items: blocker_removed=+1 (w=2), accessibility=+1 (disabled buttons inaccessible to keyboard/screen-reader). All other items 0 \u2014 patch adds no copy, layout, or proof. Pass 3 scored copy_antifluff=+1 (patch text is fluff-free)."
+    },
+    "lighthouse": {
+      "enabled": false
+    },
+    "persona": {
+      "enabled": false
+    }
+  },
+  "weights_renormalized": {
+    "llm_judge": 0.727,
+    "heuristic": 0.273
+  },
+  "composite": 0.27
+}

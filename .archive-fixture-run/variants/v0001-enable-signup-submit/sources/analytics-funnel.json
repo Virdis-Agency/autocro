@@ -1,0 +1,10 @@
+{
+  "_source": "fixture:analytics.funnel()",
+  "_capability": "funnel",
+  "result": [
+    {"step": "landing",    "entered": 12420, "advanced": 8940},
+    {"step": "pricing",    "entered":  8940, "advanced": 2310},
+    {"step": "signup_form","entered":  2310, "advanced":  420},
+    {"step": "submit",     "entered":   420, "advanced":   96}
+  ]
+}

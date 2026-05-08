@@ -1,0 +1,12 @@
+{
+  "_source": "fixture:heatmap.rage_clicks(path='/signup')",
+  "_capability": "rage_clicks",
+  "_path": "/signup",
+  "result": [
+    {
+      "selector": "button[type='submit']",
+      "count": 582,
+      "sample_note": "users clicking the disabled submit button repeatedly; most sessions then abandon"
+    }
+  ]
+}

@@ -93,6 +93,14 @@ Do NOT write `pre-validation.json` or `experiment.json` from this skill — thos
 
    On non-zero exit: write `notes.md` with the exact stderr from `git apply --check`, do NOT promote `${scratch}/patch.diff` to the variant folder, skip `pre-validate.md`, and let the inner loop record `status=crash`. Do NOT attempt to hand-fix hunk headers — re-run step 4 from a fresh scratch directory if the input edit was wrong, otherwise abandon the variant.
 
+5b. **Wrap as experiment (optional, gated by config).** If `config.workflow.patch_shape == "wrapped"`, invoke `skills/wrap-as-experiment.md` with the slug and the scratch patch. That skill rewrites `${scratch}/patch.diff` so the change is gated by a PostHog feature flag (`autocro-<slug>`) rather than shipping unconditionally. It returns one of:
+
+   - `wrapped` → continue with the wrapped patch as `${scratch}/patch.diff`. Re-run `git apply --check` on the rewritten patch (the wrap-as-experiment skill does this internally; trust its result).
+   - `passthrough:<reason>` → keep the direct patch as `${scratch}/patch.diff`. Note the reason in `notes.md` (e.g. CSS-only change, non-JSX file). The variant proceeds normally; any PostHog experiment created later for this variant will be a no-op since no code is flag-gated.
+   - `aborted:<reason>` → treat exactly like step 5's `git apply --check` failure: write `notes.md` with the abort reason, do NOT promote `${scratch}/patch.diff`, skip `pre-validate.md`, let the inner loop record `status=crash`.
+
+   When `config.workflow.patch_shape != "wrapped"` (the default `"direct"` value, or absent), skip this step entirely.
+
 6. **Count `diff_lines`.** Lines beginning with `+` but not `+++`, plus lines beginning with `-` but not `---`. If `diff_lines > config.guardrails.max_diff_lines`, stop and report the overrun in `notes.md`. Do not truncate the patch — report the overrun so the inner loop can record `status=discarded`.
 
 7. **Sanity self-check.** Before writing `patch.diff`, re-read your proposed diff and confirm:

@@ -54,26 +54,50 @@ posthog_query() {
 
 HogQL requires escaping the `$` in event names as `\\$pageview` when embedded in a JSON string.
 
+### Test-account exclusion (project-specific — edit per deployment)
+
+PostHog's project-level `test_account_filters` are honored by Trends/Funnels/Web Analytics insights but **NOT** by raw HogQL queries. Every HogQL query in this adapter must include the following `AND` clauses in its `WHERE` block to mirror the project filters defined at `Settings → Project → Internal and test accounts`. Update these clauses if you change the project filters.
+
+```sql
+-- Exclude Sanity Studio internal admin paths (CMS noise)
+AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+-- Exclude localhost dev traffic
+AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+-- Exclude identified internal/team email domains
+AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
+```
+
+When a query keys on `properties.$current_url` instead of `properties.$pathname` (e.g. `click_map`, `rage_clicks` in the heatmap adapter), substitute `$current_url` for `$pathname` in the first two clauses — the regex still matches because Studio paths appear in both.
+
+The `coalesce(..., '') NOT ILIKE` pattern is null-safe: events with missing properties pass the filter rather than being dropped.
+
 ### top_pages(window="7d", limit=25)
 
 Query:
 ```sql
 SELECT
   properties.$pathname AS path,
-  count() AS sessions,
+  count(DISTINCT $session_id) AS sessions,
   countIf(properties.$session_duration < 5) / count() AS bounce_rate,
-  countIf(event = 'sign_up') / count() AS conv_rate,
+  countIf(event = 'sign_up') / count(DISTINCT $session_id) AS conv_rate,
   avg(properties.$session_duration) AS avg_time_s
 FROM events
 WHERE event = '$pageview'
   AND timestamp > now() - interval 7 day
   AND properties.$pathname IS NOT NULL
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY path
 ORDER BY sessions DESC
 LIMIT 25
 ```
 
-Transform: the `results` array comes back as rows of `[path, sessions, bounce_rate, conv_rate, avg_time_s]`. Convert to array of objects with those keys. Numbers come out as floats — cast `sessions` to integer.
+Transform: the `results` array comes back as rows of `[path, sessions, bounce_rate, conv_rate, avg_time_s]`. Convert to array of objects with those keys. Numbers come out as floats — cast `sessions` to integer. `sessions` now counts distinct `$session_id` values rather than raw event count, so a single visitor pageview-spamming a path no longer inflates the metric.
 
 Return:
 ```jsonc
@@ -92,6 +116,11 @@ SELECT
 FROM events
 WHERE event = '$pageview'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY $session_id
 LIMIT 25
 ```
@@ -103,10 +132,10 @@ Return:
 
 ### funnel(steps)
 
-Use PostHog's Funnel query (an insight type) instead of raw HogQL — funnels are a first-class concept.
+Use PostHog's Funnel query (an insight type) instead of raw HogQL — funnels are a first-class concept. **Set `filterTestAccounts: true` so the project's `test_account_filters` (cohort + Studio + localhost) are honored automatically by PostHog** — funnels are an insight type that respects project-level test-account filtering, unlike raw HogQL.
 
 ```bash
-posthog_query '{"kind": "FunnelsQuery", "series": [
+posthog_query '{"kind": "FunnelsQuery", "filterTestAccounts": true, "series": [
   {"kind": "EventsNode", "event": "$pageview", "properties": [{"key": "$pathname", "value": "/"}]},
   {"kind": "EventsNode", "event": "$pageview", "properties": [{"key": "$pathname", "value": "/pricing"}]},
   {"kind": "EventsNode", "event": "sign_up"}
@@ -134,6 +163,11 @@ SELECT
 FROM events
 WHERE timestamp > now() - interval 7 day
   AND properties.$referring_domain IS NOT NULL
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 GROUP BY source
 ORDER BY sessions DESC
 LIMIT 25
@@ -155,6 +189,11 @@ SELECT
   countIf(event = '${event}') / count(DISTINCT $session_id) AS rate
 FROM events
 WHERE timestamp > now() - interval 7 day
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/structure%'
+  AND coalesce(properties.$pathname, '') NOT ILIKE '/studio%'
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 ```
 
 Return:
@@ -176,7 +215,12 @@ FROM events
 WHERE event = '$pageview'
   AND properties.$pathname = '${path}'
   AND timestamp > now() - interval 7 day
+  AND coalesce(properties.$current_url, '') NOT ILIKE '%localhost%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@virdis.io%'
+  AND coalesce(person.properties.email, '') NOT ILIKE '%@socialswarmmarketing.com%'
 ```
+
+Note: this query already restricts to a specific `${path}`, so the `/structure%` / `/studio%` exclusions aren't needed — the caller wouldn't pass a Studio path here in the first place. Localhost + identified-team-email exclusions still apply.
 
 Note: `$scroll_pct` and `$engagement_score` are only present if you enable session recordings and scroll depth tracking in your PostHog settings. If either is null, substitute 0 in the Transform step — the schema allows 0-1 inclusive.
 
