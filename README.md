@@ -2,7 +2,7 @@
 
 Autonomous conversion rate optimization research as a drop-in folder for any website project.
 
-> **autocro · Virdis fork** — production fork of the autocro framework
+> **AutoCRO · Virdis fork** — production fork of the autocro framework
 > (a Karpathy-style autoresearch loop retargeted at conversion rate
 > optimization), maintained by [Virdis](https://virdis.io). We're rolling
 > this out across virdis.io and SaaS client sites. The upstream
@@ -10,7 +10,7 @@ Autonomous conversion rate optimization research as a drop-in folder for any web
 
 ## Install — drop into your project (60 seconds)
 
-autocro is a **drop-in subfolder**, not a package. You don't `npm install`
+AutoCRO is a **drop-in subfolder**, not a package. You don't `npm install`
 it — you clone it as a folder named `autocro/` at the root of any website
 project (Next.js, Astro, plain HTML, WordPress, Rails, anything).
 
@@ -42,7 +42,7 @@ cp autocro/config.example.yaml autocro/config.yaml
 `config.yaml` is gitignored inside the autocro repo, so any local
 credentials and project-specific tweaks stay on your machine.
 
-**4. Open Claude Code in your project root and prompt:**
+**4. Open coding agent in your project root and prompt:**
 
 > Read `autocro/program.md` and run **one** inner-loop iteration using fixture
 > adapters.
@@ -53,16 +53,11 @@ and writes a row to `autocro/results.tsv`. From there, follow the
 [**Quick start**](#quick-start) section below to wire up your real analytics,
 heatmap, and A/B-testing tools.
 
-> **Don't have Claude Code?** Install it from
-> [claude.com/code](https://claude.com/code). Any harness that can execute
-> markdown skills with real tool calls works (curl, git, python3, jq, file
-> I/O) — Claude Code is what we test against.
-
 ---
 
 ## About this fork
 
-autocro is a drop-in folder that runs an overnight CRO research loop against
+AutoCRO is a drop-in folder that runs an overnight CRO research loop against
 any website project. You give it read access to your analytics, heatmaps, and
 A/B-testing tools, and in the morning you get a ranked list of small,
 reviewable variant patches — each one grounded in real data from your own
@@ -78,9 +73,9 @@ is what we run in production at Virdis. Over time we'll publish:
   others as we wire them up.
 - **Hypothesis seeds and judge-rubric tuning** for SaaS marketing sites,
   pricing pages, and onboarding funnels.
-- **Anonymized case studies** from running autocro against real client sites.
+- **Anonymized case studies** from running AutoCRO against real client sites.
 
-If you want autocro running on your own site without standing it up yourself,
+If you want AutoCRO running on your own site without standing it up yourself,
 it's part of our CRO engagement — see [virdis.io](https://virdis.io).
 
 ## Why we forked
@@ -92,7 +87,7 @@ attention — not data, not engineering, not creativity.
 
 The autoresearch architecture — a tight `program.md` skill, a
 `generate → evaluate → keep/discard → log` loop, and a flat `results.tsv`
-memory — is exactly the right shape for that problem. autocro retargets it
+memory — is exactly the right shape for that problem. AutoCRO retargets it
 from LLM pretraining at a website's `app/` and `components/` directories.
 The agent does the staring; we do the judgment.
 
@@ -139,7 +134,7 @@ This is a fork of [Karpathy's autoresearch](https://github.com/karpathy/autorese
 
 This framework is **not a standalone runtime**. It runs inside an agent harness that can execute markdown skills with real tool calls. Required:
 
-- **Claude Code** (or any compatible harness that can run `curl`, `git`, `python3`, `jq`, file I/O, and optional MCP tools from inside a markdown playbook). This is what executes `program.md`, the skills, and the adapter playbooks.
+- **Any compatible harness** that can run `curl`, `git`, `python3`, `jq`, file I/O, and optional MCP tools from inside a markdown playbook). This is what executes `program.md`, the skills, and the adapter playbooks.
 - **`python3` ≥ 3.10** — used by the stdlib-only validators under `harness/`. No third-party packages required. Ships with every modern macOS/Linux. Install via `brew install python@3.11` or your distro's package manager if missing.
 - **`git`**, **`curl`**, **`jq`** on `PATH`.
 - A **parent website project** to drop this folder into.
@@ -206,10 +201,10 @@ from the directory **above** the clone — that way `autocro/` sits as a
 subfolder, matching the drop-in layout above. To smoke-test against the
 bundled demo site without wiring up a real parent project, set
 `project.root: "fixtures/demo-target"` (relative to `autocro/`) in
-`autocro/config.yaml`. Do NOT open Claude Code from inside the clone root;
+`autocro/config.yaml`. Do NOT open your agent harness from inside the clone root;
 every skill hardcodes `autocro/...` paths and they will not resolve.
 
-Then open Claude Code in your project root and prompt:
+Then open your agent harness in your project root and prompt:
 
 > Read `autocro/program.md` and run **one** inner-loop iteration using fixture adapters.
 
@@ -225,7 +220,7 @@ cp autocro/config.example.yaml autocro/config.yaml
 #   adapters.analytics.id: null   # we'll set this in a moment
 ```
 
-Then in Claude Code, prompt:
+Then in your agent harness, prompt:
 
 > Read `autocro/program.md`. I don't have any adapters yet. Run `autocro/skills/author-adapter.md` to help me write one for my analytics tool, which is `<your tool>`. Here are the API docs: `<url or paste>`.
 
