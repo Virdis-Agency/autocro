@@ -2,6 +2,126 @@
 
 Autonomous conversion rate optimization research as a drop-in folder for any website project.
 
+> **autocro · Virdis fork** — production fork of the autocro framework
+> (a Karpathy-style autoresearch loop retargeted at conversion rate
+> optimization), maintained by [Virdis](https://virdis.io). We're rolling
+> this out across virdis.io and SaaS client sites. The upstream
+> documentation is preserved verbatim below.
+
+## Install — drop into your project (60 seconds)
+
+autocro is a **drop-in subfolder**, not a package. You don't `npm install`
+it — you clone it as a folder named `autocro/` at the root of any website
+project (Next.js, Astro, plain HTML, WordPress, Rails, anything).
+
+**1. Clone into your project root:**
+
+```bash
+# from the root of your website project:
+gh repo clone Virdis-Agency/autocro
+# or, without the gh CLI:
+git clone https://github.com/Virdis-Agency/autocro.git
+```
+
+You should now have an `autocro/` folder sitting next to your `package.json`,
+`Gemfile`, `index.html`, or whatever the root of your site is.
+
+**2. Tell your parent repo to ignore it** (recommended — keeps the autocro
+git history separate from your website's):
+
+```bash
+echo "autocro/" >> .gitignore
+```
+
+**3. Copy the example config:**
+
+```bash
+cp autocro/config.example.yaml autocro/config.yaml
+```
+
+`config.yaml` is gitignored inside the autocro repo, so any local
+credentials and project-specific tweaks stay on your machine.
+
+**4. Open Claude Code in your project root and prompt:**
+
+> Read `autocro/program.md` and run **one** inner-loop iteration using fixture
+> adapters.
+
+That's it. The first run uses bundled offline fixtures so you don't need any
+API keys — it produces a sample variant patch in `autocro/variants/v0001-*/`
+and writes a row to `autocro/results.tsv`. From there, follow the
+[**Quick start**](#quick-start) section below to wire up your real analytics,
+heatmap, and A/B-testing tools.
+
+> **Don't have Claude Code?** Install it from
+> [claude.com/code](https://claude.com/code). Any harness that can execute
+> markdown skills with real tool calls works (curl, git, python3, jq, file
+> I/O) — Claude Code is what we test against.
+
+---
+
+## About this fork
+
+autocro is a drop-in folder that runs an overnight CRO research loop against
+any website project. You give it read access to your analytics, heatmaps, and
+A/B-testing tools, and in the morning you get a ranked list of small,
+reviewable variant patches — each one grounded in real data from your own
+tools, pre-validated by an LLM judge panel and heuristic scoring, and
+optionally already queued as a 0%-allocation experiment in whichever A/B
+testing tool you pointed it at.
+
+This fork ([Virdis-Agency/autocro](https://github.com/Virdis-Agency/autocro))
+is what we run in production at Virdis. Over time we'll publish:
+
+- **Production-tested adapter playbooks** for the tools we use most — PostHog
+  (analytics + experiments), Microsoft Clarity (heatmaps), GrowthBook, and
+  others as we wire them up.
+- **Hypothesis seeds and judge-rubric tuning** for SaaS marketing sites,
+  pricing pages, and onboarding funnels.
+- **Anonymized case studies** from running autocro against real client sites.
+
+If you want autocro running on your own site without standing it up yourself,
+it's part of our CRO engagement — see [virdis.io](https://virdis.io).
+
+## Why we forked
+
+CRO at most agencies looks like this: someone stares at heatmaps for an hour,
+forms a hypothesis, writes a variant, ships it to GrowthBook at 50/50, waits
+two weeks, repeats. It's slow, it's expensive, and the bottleneck is human
+attention — not data, not engineering, not creativity.
+
+The autoresearch architecture — a tight `program.md` skill, a
+`generate → evaluate → keep/discard → log` loop, and a flat `results.tsv`
+memory — is exactly the right shape for that problem. autocro retargets it
+from LLM pretraining at a website's `app/` and `components/` directories.
+The agent does the staring; we do the judgment.
+
+We forked so we can:
+
+1. **Own the adapters our team relies on** and ship improvements without
+   waiting on upstream.
+2. **Keep our internal hypothesis libraries and rubric tuning** in one place,
+   versioned alongside the framework that consumes them.
+3. **Run it against [virdis.io](https://virdis.io) itself** — the agency site
+   you're reading about *is* the first parent project this fork operates on.
+
+We follow upstream and contribute fixes back when they're generally useful.
+
+## About Virdis
+
+[Virdis](https://virdis.io) builds fast, conversion-focused websites for
+growth-stage SaaS companies. Next.js, PostHog, GrowthBook, Sanity. On time, on
+spec, no surprises. If you want a site that ships *and* gets measurably better
+every month, [book a call](https://virdis.io/book-a-call).
+
+Follow us on X: [@virdis](https://x.com/virdis).
+
+---
+
+# Auto Conversion Rate Optimization (CRO)
+
+Autonomous conversion rate optimization research as a drop-in folder for any website project.
+
 You drop this folder into the root of your website project, spend ~10 minutes telling the agent what analytics / heatmap / A/B testing tools you use, and then let it run overnight. In the morning you wake up to a ranked list of variant ideas — each one is a small, reviewable code diff against your project, grounded in real data from your own tools, pre-validated by an LLM judge panel + heuristic scoring, and (optionally) already queued as a 0%-allocation experiment in whichever A/B testing tool you pointed it at.
 
 This is a fork of [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) retargeted from LLM pretraining to CRO. The architectural spirit is unchanged: `program.md` is a lightweight skill you iterate on, the agent runs a tight `generate → evaluate → keep/discard → log` loop, `results.tsv` is the memory, and it never stops until you stop it.
