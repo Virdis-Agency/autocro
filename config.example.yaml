@@ -262,6 +262,31 @@ git:
 # ---------------------------------------------------------------------------
 
 workflow:
+  # Operating cadence pattern. Documents the project's intended rhythm.
+  # Does NOT enforce behavior on its own — pick the cadence that matches
+  # how you want to use autocro, then ensure the keys below align.
+  # See README.md "Cadence patterns" for the full decision matrix.
+  #
+  #   "weekly_batch" — Run a 10–20 variant batch once a week.
+  #     All passing variants queue in variants/PENDING.md for human review.
+  #     Recommended at low traffic (< ~50 PV/day) where stat significance
+  #     is unreachable; the agent's composite score is the verdict.
+  #     Bundle: review_mode=manual, auto_apply_to_repo=false,
+  #             schedule.enabled=false, budget.max_variants_per_run=20.
+  #
+  #   "on_demand" (default) — Run only when invoked. Zero recurring cost.
+  #     Easy to forget — no automation. Best for experimental phase.
+  #     Bundle: review_mode=manual or auto, auto_apply_to_repo=false,
+  #             schedule.enabled=false, budget.max_variants_per_run=10.
+  #
+  #   "scheduled_cron" — A cron line restarts autocro every N days/weeks.
+  #     setup-check prints the crontab entry; you paste it once.
+  #     Recommended for established projects (≥ ~100 PV/day) where real
+  #     A/B significance is reachable + you want full automation.
+  #     Bundle: review_mode=auto, auto_apply_to_repo=true (high threshold),
+  #             schedule.enabled=true, budget.max_variants_per_run=30.
+  cadence: "on_demand"   # "weekly_batch" | "on_demand" | "scheduled_cron"
+
   # Review gate for pushing variants to the A/B test tool.
   #
   #   "manual" (default) — Every variant that passes pre-validation lands in

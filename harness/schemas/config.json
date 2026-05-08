@@ -228,6 +228,11 @@
           "type": "string",
           "enum": ["direct", "wrapped"]
         },
+        "cadence": {
+          "type": "string",
+          "enum": ["weekly_batch", "on_demand", "scheduled_cron"],
+          "description": "Operating cadence pattern. Documents the project's intended rhythm and informs setup-check's recommendations. Does not enforce behavior on its own — actual behavior is driven by review_mode, auto_apply_to_repo, schedule.enabled, and budget.max_variants_per_run."
+        },
         "test_window": {
           "type": "object",
           "additionalProperties": false,

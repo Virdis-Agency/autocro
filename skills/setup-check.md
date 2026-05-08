@@ -221,6 +221,27 @@ schedule: enabled — will prompt for cron setup (every <interval_value> <interv
 
 Schema already enforces the valid value ranges; the echo is purely for human visibility.
 
+**i) Cadence pattern check (advisory).** If `config.workflow.cadence` is set, echo the chosen pattern and verify the underlying config bundle matches the recommended values from README.md "Cadence patterns". This is purely a sanity warning — it never blocks the run. The cadence field documents intent; the actual behavior comes from `review_mode`, `auto_apply_to_repo`, `schedule.enabled`, and `budget.max_variants_per_run`.
+
+Recommended bundles per cadence:
+
+| cadence | review_mode | auto_apply_to_repo | schedule.enabled | max_variants_per_run |
+|---------|-------------|--------------------|-----------------|----------------------|
+| `weekly_batch` | `manual` | `false` | `false` | ~20 |
+| `on_demand` | `manual` or `auto` | `false` | `false` | ~10 |
+| `scheduled_cron` | `auto` | `true` | `true` | ~30 |
+
+For each setting that diverges from the recommended bundle for the chosen cadence, print a single warning line:
+
+```
+WARNING: workflow.cadence = "<value>" expects <key> = <recommended>, but got <actual>.
+This is a sanity warning — your run will proceed unchanged. Either update <key> to
+match the cadence recommendation, or change workflow.cadence to a pattern that fits
+your settings.
+```
+
+If `workflow.cadence` is absent, no warning — the field is optional and defaults to "on_demand" semantics. Document the inferred default in `run.log`.
+
 ### 8. Confirm success
 
 If all steps pass, write one line to `run.log`:

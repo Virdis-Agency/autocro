@@ -261,6 +261,77 @@ All three human-control knobs live under `workflow:` in `config.yaml`:
 
 Scheduling (`workflow.schedule`) is for restarting the whole session on an interval and is separate from `test_window`, which governs per-experiment baking time.
 
+## Cadence patterns
+
+`workflow.cadence` is a discoverable preset that documents how you intend to run autocro. The field does not enforce behavior on its own — it tells `setup-check.md` what config bundle to expect, warns if your other settings drift, and informs the README sections you should be reading.
+
+Pick the pattern that matches your traffic + how much active management you want.
+
+### A. `weekly_batch` — recommended at low traffic (< ~50 PV/day)
+
+Run a 10–20 variant batch once a week. All passing variants land in `variants/PENDING.md` ranked by composite. You spend ~15 minutes weekly reviewing the top 3–5 and either commit them to the autocro branch yourself OR tell the agent to push the obvious wins to PostHog.
+
+| Bundle key | Recommended value |
+|------------|-------------------|
+| `review_mode` | `"manual"` |
+| `auto_apply_to_repo` | `false` |
+| `schedule.enabled` | `false` (you invoke manually weekly) |
+| `budget.max_variants_per_run` | `20` |
+
+**When to pick it.** Your site has too little traffic for any A/B test to reach significance in the `test_window`. The agent's composite score is the practical verdict, not Bayesian confidence. You want to ship CRO patches based on AI judgment + your review, not statistical winners.
+
+**Cost & effort.** ~30–60 min of agent runtime per batch, ~$5–15 in token usage (most of it the 5-pass LLM judge panels). 15 min of human review weekly.
+
+**Risk.** None. Nothing reaches your A/B tool or your working tree without your explicit approval.
+
+### B. `on_demand` (default for fresh setups)
+
+Run autocro only when you ask the agent to. Zero recurring cost. No cron, no nudges. Best for the experimental phase before you've decided whether autocro is worth the weekly cadence.
+
+| Bundle key | Recommended value |
+|------------|-------------------|
+| `review_mode` | `"manual"` (safest) or `"auto"` |
+| `auto_apply_to_repo` | `false` |
+| `schedule.enabled` | `false` |
+| `budget.max_variants_per_run` | `10` |
+
+**When to pick it.** You're trying autocro for the first time. You want to feel out what the agent produces before committing to a recurring cadence.
+
+**Cost & effort.** Pay-per-run. Zero ambient cost. The downside: easy to forget you have it set up; you'll miss windows where new PostHog data could surface fresh hypotheses.
+
+### C. `scheduled_cron` — best at established traffic (≥ ~100 PV/day)
+
+A cron line restarts autocro every N days/weeks. `setup-check.md` prints the crontab entry; you paste it once into `crontab -e`. The agent runs unattended (e.g. every Sunday 2am) and lands new patches on the autocro branch + new PostHog experiments by morning.
+
+| Bundle key | Recommended value |
+|------------|-------------------|
+| `review_mode` | `"auto"` |
+| `auto_apply_to_repo` | `true` |
+| `auto_apply_threshold` | `0.70` or higher (commits go to a dedicated branch) |
+| `auto_push_threshold` | `0.60` |
+| `schedule.enabled` | `true` (set `interval_value`, `interval_unit`) |
+| `budget.max_variants_per_run` | `30` |
+
+**When to pick it.** Your site gets enough traffic that A/B tests can actually reach the `outer_loop.required_significance` gate. You want the framework's full machinery — variants ship, experiments run live, winners get declared, follow-ups get queued — without ongoing human prompting.
+
+**Cost & effort.** ~$15–40/week in token usage depending on `max_variants_per_run`. Human effort drops to monthly review of the autocro branch + the experiment dashboard.
+
+**Risk.** Higher. Patches commit to your repo branch automatically (you decide when to merge). Experiments push live to your A/B tool automatically. Always set `auto_apply_threshold` high (>= 0.70) and keep `config.guardrails.deny_globs` tight.
+
+### Decision matrix
+
+| Question | If yes → |
+|----------|----------|
+| Is your traffic under ~50 PV/day on conversion-relevant pages? | `weekly_batch` |
+| Are you still evaluating whether autocro fits your project? | `on_demand` |
+| Do you have ≥ ~100 PV/day AND are you comfortable with autocro committing to a branch automatically? | `scheduled_cron` |
+| Do you want maximum experiments per week with minimum management? | `scheduled_cron` |
+| Do you want the agent to never touch your repo or your A/B tool without explicit per-variant approval? | `weekly_batch` (or `on_demand` with `review_mode: manual`) |
+
+### Switching cadences later
+
+Cadence is just config — flip it at any time. `setup-check.md` will warn you if the bundle keys (review mode, auto-apply, scheduling) don't match the cadence you've set, but it won't block the run. Migration is a config edit, not a rebuild.
+
 ## Project structure
 
 ```
